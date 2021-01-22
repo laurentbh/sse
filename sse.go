@@ -1,6 +1,7 @@
 package sse
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -38,7 +39,9 @@ func NewSseServer() *SseServer {
 func (server *SseServer) Publish(message string) {
 	server.messages <- []byte(message)
 }
-func (server *SseServer) Connect(rw http.ResponseWriter, req *http.Request) {
+
+// Subscribe to the sse server
+func (server *SseServer) Subscribe(rw http.ResponseWriter, req *http.Request) {
 	flusher, ok := rw.(http.Flusher)
 
 	if !ok {
@@ -64,9 +67,11 @@ func (server *SseServer) Connect(rw http.ResponseWriter, req *http.Request) {
 	}()
 
 	for {
-		_, err := rw.Write(<-c)
+		_, err := fmt.Fprintf(rw, "%s\n", <-c)
 		if err != nil {
 			log.Printf("%v", err)
+			server.unregister <- c
+			break
 		}
 		flusher.Flush()
 	}
