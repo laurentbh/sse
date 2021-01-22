@@ -9,7 +9,7 @@ Go implementation of SSE server
 # Usage
 1- start the server
 ```go
-server := sse.NewSseServer()
+server := sse.NewServer()
 ```
 2- connect the server to the endpoint
 ```go

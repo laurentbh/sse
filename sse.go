@@ -6,7 +6,8 @@ import (
 	"net/http"
 )
 
-type SseServer struct {
+// Server ...
+type Server struct {
 	// channel of messages to be pushed to clients
 	messages chan []byte
 
@@ -24,8 +25,8 @@ type SseServer struct {
 }
 
 // NewServer create and start a new SseServer
-func NewSseServer() *SseServer {
-	server := &SseServer{
+func NewServer() *Server {
+	server := &Server{
 		messages:   make(chan []byte, 1),
 		clients:    make(map[chan []byte]bool),
 		register:   make(chan chan []byte),
@@ -36,12 +37,12 @@ func NewSseServer() *SseServer {
 }
 
 // Publish message to all connected clients
-func (server *SseServer) Publish(message string) {
-	server.messages <- []byte(message)
+func (s *Server) Publish(message string) {
+	s.messages <- []byte(message)
 }
 
 // Subscribe to the sse server
-func (server *SseServer) Subscribe(rw http.ResponseWriter, req *http.Request) {
+func (s *Server) Subscribe(rw http.ResponseWriter, req *http.Request) {
 	flusher, ok := rw.(http.Flusher)
 
 	if !ok {
@@ -56,43 +57,43 @@ func (server *SseServer) Subscribe(rw http.ResponseWriter, req *http.Request) {
 
 	// create communication channel and register
 	c := make(chan []byte)
-	server.register <- c
+	s.register <- c
 
 	// listen to the closing of the http connection via the CloseNotifier
 	notify := rw.(http.CloseNotifier).CloseNotify()
 	go func() {
 		<-notify
 		log.Println("connection closed")
-		server.unregister <- c
+		s.unregister <- c
 	}()
 
 	for {
 		_, err := fmt.Fprintf(rw, "%s\n", <-c)
 		if err != nil {
 			log.Printf("%v", err)
-			server.unregister <- c
+			s.unregister <- c
 			break
 		}
 		flusher.Flush()
 	}
 }
-func (server *SseServer) broadcast(message []byte) {
-	for c := range server.clients {
+func (s *Server) broadcast(message []byte) {
+	for c := range s.clients {
 		c <- message
 	}
 }
-func (server *SseServer) listen() {
+func (s *Server) listen() {
 	for {
 		select {
-		case c := <-server.messages:
-			log.Println("new message")
-			server.broadcast(c)
-		case c := <-server.register:
-			log.Println("new client")
-			server.clients[c] = true
-		case c := <-server.unregister:
+		case c := <-s.messages:
+			// log.Println("new message")
+			s.broadcast(c)
+		case c := <-s.register:
+			log.Println("client registering")
+			s.clients[c] = true
+		case c := <-s.unregister:
 			log.Println("client leaving")
-			delete(server.clients, c)
+			delete(s.clients, c)
 		}
 	}
 }

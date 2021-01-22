@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	server := sse.NewSseServer()
+	server := sse.NewServer()
 
 	http.HandleFunc("/time", server.Subscribe)
 
@@ -27,5 +27,4 @@ func main() {
 	}()
 
 	http.ListenAndServe(":8080", http.DefaultServeMux)
-
 }
