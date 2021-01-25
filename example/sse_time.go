@@ -20,7 +20,7 @@ func main() {
 		for {
 			select {
 			case <-ticker:
-				server.Publish(fmt.Sprintf("message # %d", count))
+				server.PublishRaw(fmt.Sprintf("message # %d", count))
 				count++
 			}
 		}

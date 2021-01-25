@@ -1,9 +1,11 @@
 package sse
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // Server ...
@@ -36,8 +38,25 @@ func NewServer() *Server {
 	return server
 }
 
-// Publish message to all connected clients
-func (s *Server) Publish(message string) {
+// Publish publish object. mesage will be conform to
+// EventSource spec:
+// data:[json]\n\n
+func (s *Server) Publish(message interface{}) error {
+	var sb strings.Builder
+	sb.WriteString("data:")
+	bytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	sb.Write(bytes)
+	sb.WriteString("\n\n")
+
+	s.messages <- []byte(sb.String())
+	return nil
+}
+
+// PublishRaw publish raw message to all connected clients
+func (s *Server) PublishRaw(message string) {
 	s.messages <- []byte(message)
 }
 
