@@ -26,5 +26,8 @@ func main() {
 		}
 	}()
 
-	http.ListenAndServe(":8080", http.DefaultServeMux)
+	err := http.ListenAndServe(":8080", http.DefaultServeMux)
+	if err != nil {
+		fmt.Printf("Listen and server %v\n", err)
+	}
 }
