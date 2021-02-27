@@ -86,8 +86,8 @@ func (s *Server) Subscribe(rw http.ResponseWriter, req *http.Request) {
 		s.unregister <- c
 	}()
 
-	for {
-		_, err := fmt.Fprintf(rw, "%s\n", <-c)
+	for msg := range c {
+		_, err := fmt.Fprintf(rw, "%s\n", msg)
 		if err != nil {
 			log.Printf("%v", err)
 			s.unregister <- c
@@ -113,6 +113,7 @@ func (s *Server) listen() {
 		case c := <-s.unregister:
 			log.Println("client leaving")
 			delete(s.clients, c)
+			close(c)
 		}
 	}
 }
