@@ -62,6 +62,7 @@ func (s *Server) PublishRaw(message string) {
 
 // Subscribe to the sse server
 func (s *Server) Subscribe(rw http.ResponseWriter, req *http.Request) {
+	log.Printf("subscribe [%s]", req.RemoteAddr)
 	flusher, ok := rw.(http.Flusher)
 
 	if !ok {
@@ -82,14 +83,14 @@ func (s *Server) Subscribe(rw http.ResponseWriter, req *http.Request) {
 	notify := rw.(http.CloseNotifier).CloseNotify()
 	go func() {
 		<-notify
-		log.Println("connection closed")
+		log.Printf("unsubscribe [%s]", req.RemoteAddr)
 		s.unregister <- c
 	}()
 
 	for msg := range c {
 		_, err := fmt.Fprintf(rw, "%s\n", msg)
 		if err != nil {
-			log.Printf("%v", err)
+			log.Printf("[%s] %v", req.RemoteAddr, err)
 			s.unregister <- c
 			break
 		}
@@ -108,10 +109,10 @@ func (s *Server) listen() {
 			// log.Println("new message")
 			s.broadcast(c)
 		case c := <-s.register:
-			log.Println("client registering")
+			// log.Println("client registering")
 			s.clients[c] = true
 		case c := <-s.unregister:
-			log.Println("client leaving")
+			// log.Println("client leaving")
 			delete(s.clients, c)
 			close(c)
 		}
